@@ -27,8 +27,9 @@ public interface LiferayAdapter {
      * @param emailAddress the email address of the Liferay user
      * @param firstName the first name of the Liferay user
      * @param lastName last name of the Liferay user
+     * @param oidcData string containing OIDC data in json format
      * @return the userId of the created or updated User, as a String
      */
-    String createOrUpdateUser(long companyId, String emailAddress, String firstName, String lastName);
+    String createOrUpdateUser(long companyId, String emailAddress, String firstName, String lastName, String oidcData);
 
 }

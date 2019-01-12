@@ -1,6 +1,7 @@
 package nl.finalist.liferay.oidc;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,6 +27,30 @@ public class LibAutoLogin {
         liferay.info("Initialized LibAutoLogin with Liferay API: " + liferay.getClass().getName());
     }
 
+    private String jsonUserInfo(Map<String,String> userInfo) {
+        String jsonUserInfo = "{";
+        int i=0;
+        for (Entry<String, String> entry : userInfo.entrySet()) {
+	    String jsonItem = "";
+	    // Process only String values
+	    if(entry.getValue() instanceof String) {
+                jsonItem = "\"" + entry.getKey() + "\": " +
+                           "\"" + entry.getValue() + "\"";
+	    } else {
+                jsonItem = "\"" + entry.getKey() + "\": " +
+                           "\"<unsupported type>\"";
+            }
+            if(i == 0) {
+              jsonUserInfo += jsonItem;
+              i++;
+            } else {
+              jsonUserInfo += ", " + jsonItem;
+            }
+        }
+        jsonUserInfo += "}";
+        return jsonUserInfo;
+   }
+
     public String[] doLogin(HttpServletRequest request, HttpServletResponse response) {
     	String[] userResponse = null;
 
@@ -48,11 +73,12 @@ public class LibAutoLogin {
                          "Cannot correlate to Liferay user. UserInfo: " + userInfo);
              } else {
                  liferay.trace("Found OpenID Connect session attribute, userinfo: " + userInfo);
+                 String oidcData = jsonUserInfo(userInfo);
             	 String emailAddress = provider.getEmail(userInfo);
                  String givenName = provider.getFirstName(userInfo);
                  String familyName = provider.getLastName(userInfo);
 
-                 String userId = liferay.createOrUpdateUser(companyId, emailAddress, givenName, familyName);
+                 String userId = liferay.createOrUpdateUser(companyId, emailAddress, givenName, familyName, oidcData);
                  liferay.trace("Returning credentials for userId " + userId + ", email: " + emailAddress);
                  
                  userResponse = new String[]{userId, UUID.randomUUID().toString(), "false"};

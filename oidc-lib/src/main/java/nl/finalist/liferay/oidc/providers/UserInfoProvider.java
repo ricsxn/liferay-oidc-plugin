@@ -15,4 +15,8 @@ public class UserInfoProvider {
 	public String getLastName(Map<String, String> userInfo) {
 		return userInfo.get("family_name");
 	}
+
+        public String getSub(Map<String, String> userInfo) {
+		return userInfo.get("sub");
+	}
 }

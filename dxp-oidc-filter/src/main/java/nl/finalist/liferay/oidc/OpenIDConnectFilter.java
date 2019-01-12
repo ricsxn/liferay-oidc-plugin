@@ -20,7 +20,7 @@ import nl.finalist.liferay.oidc.LibFilter.FilterResult;
 import nl.finalist.liferay.oidc.configuration.OpenIDConnectOCDConfiguration;
 
 @Component(
-		immediate = true,
+	immediate = true,
         property = {
                 "dispatcher=FORWARD",
                 "dispatcher=REQUEST",
