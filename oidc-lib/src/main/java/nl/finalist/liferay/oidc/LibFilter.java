@@ -77,8 +77,10 @@ public class LibFilter  {
      * @throws Exception according to interface.
      * @return FilterResult, to be able to distinct between continuing the chain or breaking it.
      */
-    protected FilterResult processFilter(HttpServletRequest request, HttpServletResponse response, FilterChain 
-            filterChain) throws Exception {
+    protected FilterResult processFilter(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain) throws Exception {
 
         OIDCConfiguration oidcConfiguration = liferay.getOIDCConfiguration(liferay.getCompanyId(request));
 
@@ -90,49 +92,47 @@ public class LibFilter  {
 
         liferay.trace("In processFilter()...");
 
-		String pathInfo = request.getPathInfo();
+        String pathInfo = request.getPathInfo();
 
-		if (null != pathInfo) {
-			if (pathInfo.contains("/portal/login")) {
-		        if (!StringUtils.isBlank(request.getParameter(REQ_PARAM_CODE))
-		                && !StringUtils.isBlank(request.getParameter(REQ_PARAM_STATE))) {
-
-		            if (!isUserLoggedIn(request)) {
-		                // LOGIN: Second time it will expect a code and state param to be set, and will exchange the code for an access token.
-		                liferay.trace("About to exchange code for access token");
-		                exchangeCodeForAccessToken(request);
-		            } else {
-		                liferay.trace("subsequent run into filter during openid conversation, but already logged in." +
-		                        "Will not exchange code for token twice.");
-		            }
-		        } else {
-		        	// LOGIN: The first time this filter gets hit, it will redirect to the OP.
-		            liferay.trace("About to redirect to OpenID Provider");
-		            redirectToLogin(request, response, oidcConfiguration.clientId());
-		            // no continuation of the filter chain; we expect the redirect to commence.
-		            return FilterResult.BREAK_CHAIN;
-		        }
-			} 
-			else
-			if (pathInfo.contains("/portal/logout")) {
+        if (null != pathInfo) {
+            if (pathInfo.contains("/portal/login")) {
+                if (!StringUtils.isBlank(request.getParameter(REQ_PARAM_CODE))
+                    && !StringUtils.isBlank(request.getParameter(REQ_PARAM_STATE))) {
+                        if (!isUserLoggedIn(request)) {
+                            // LOGIN: Second time it will expect a code and state param to be set, and will exchange the code for an access token.
+                            liferay.trace("About to exchange code for access token");
+                            exchangeCodeForAccessToken(request);
+                        } else {
+                            liferay.trace("subsequent run into filter during openid conversation, but already logged in." +
+                                         "Will not exchange code for token twice.");
+                        }
+                } else {
+                    // LOGIN: The first time this filter gets hit, it will redirect to the OP.
+                    liferay.trace("About to redirect to OpenID Provider");
+                    redirectToLogin(request, response, oidcConfiguration.clientId());
+                    // no continuation of the filter chain; we expect the redirect to commence.
+                    return FilterResult.BREAK_CHAIN;
+                }
+            }
+            else if (pathInfo.contains("/portal/logout")) {
                 final String ssoLogoutUri = oidcConfiguration.ssoLogoutUri();
                 final String ssoLogoutParam = oidcConfiguration.ssoLogoutParam();
                 final String ssoLogoutValue = oidcConfiguration.ssoLogoutValue();
                 if (null != ssoLogoutUri && ssoLogoutUri.length
                     () > 0 && isUserLoggedIn(request)) {
-					
-					liferay.trace("About to logout from SSO by redirect to " + ssoLogoutUri);
-			        // LOGOUT: If Portal Logout URL is requested, redirect to OIDC Logout resource afterwards to globally logout.
-			        // From there, the request should be redirected back to the Liferay portal home page.
-					request.getSession().invalidate();
-					redirectToLogout(request, response, ssoLogoutUri, ssoLogoutParam, ssoLogoutValue);
-		            // no continuation of the filter chain; we expect the redirect to commence.
-		            return FilterResult.BREAK_CHAIN;
-				}
-			}
-		}
+                    liferay.trace("About to logout from SSO by redirect to " + ssoLogoutUri);
+                    // LOGOUT: If Portal Logout URL is requested, redirect to OIDC Logout resource afterwards to globally logout.
+                    // From there, the request should be redirected back to the Liferay portal home page.
+                    request.getSession().invalidate();
+                    redirectToLogout(request, response, ssoLogoutUri, ssoLogoutParam, ssoLogoutValue);
+                    // no continuation of the filter chain; we expect the redirect to commence.
+                    return FilterResult.BREAK_CHAIN;
+                }
+            }
+        }
+
         // continue chain
-		return FilterResult.CONTINUE_CHAIN;
+        return FilterResult.CONTINUE_CHAIN;
 
     }
 
@@ -187,41 +187,46 @@ public class LibFilter  {
         }
     }
 
+    protected String getLocales(HttpServletRequest request) {
+        String ui_locales = null;
+
+        Cookie[] cookies = request.getCookies(); // look for GUEST_LANGUAGE_ID
+        for (Cookie cookie : cookies) {
+            liferay.trace("redirectToLogin: cookie: " + cookie.getName() + " = " + cookie.getValue());
+            if ("GUEST_LANGUAGE_ID".equals(cookie.getName())) {
+                String guestLanguageId = cookie.getValue();
+                String[] guestLocale = guestLanguageId.split("_");
+                ui_locales = guestLanguageId; // full locale, just as-is: 3-zone OR 2-zone OR 1-zone locale
+                if (guestLocale.length > 2) { // we got 3-zone locale: language_COUNTRY_REGION: Add "langauge_COUNTRY"
+                    ui_locales += " " + guestLocale[0] + "_" + guestLocale[1];
+                }
+                if (guestLocale.length > 1) { // we got (3- or) 2-zone locale: language_COUNTRY: Add "language"
+                    ui_locales += " " + guestLocale[0];
+                }
+                liferay.trace("redirectToLogin: use for ui_locales: " + ui_locales);
+            }
+        }
+
+        if (null == ui_locales) { // no GUEST_LANGUAGE_ID cookie available:
+            ui_locales = request.getServletPath().substring(1); // may be /c (default locale, useless) or /en (requested locale, useful) or /xy (useful) ...
+        }
+        if (null == ui_locales || ui_locales.length() < 2) { // skip values being too short to meet https://tools.ietf.org/html/rfc5646
+            // TODO: Improve locale recognition according to syntax given in RFC-5646
+            ui_locales = request.getLocale().getLanguage();
+        }
+        liferay.trace("redirectToLogin: ui_locales: " + ui_locales);
+
+        return ui_locales;
+    }
+
     protected void redirectToLogin(HttpServletRequest request, HttpServletResponse response, String clientId) throws
             IOException {
         OIDCConfiguration oidcConfiguration = liferay.getOIDCConfiguration(liferay.getCompanyId(request));
-
-        try {
-        	String ui_locales = null;
-        	
-    		Cookie[] cookies = request.getCookies(); // look for GUEST_LANGUAGE_ID
-    		for (Cookie cookie : cookies) {
-    			liferay.trace("redirectToLogin: cookie: " + cookie.getName() + " = " + cookie.getValue());
-    			if ("GUEST_LANGUAGE_ID".equals(cookie.getName())) {
-    				String guestLanguageId = cookie.getValue();
-    				String[] guestLocale = guestLanguageId.split("_");
-    				ui_locales = guestLanguageId; // full locale, just as-is: 3-zone OR 2-zone OR 1-zone locale
-    				if (guestLocale.length > 2) { // we got 3-zone locale: language_COUNTRY_REGION: Add "langauge_COUNTRY"
-    					ui_locales += " " + guestLocale[0] + "_" + guestLocale[1];
-    				}
-    				if (guestLocale.length > 1) { // we got (3- or) 2-zone locale: language_COUNTRY: Add "language"
-    					ui_locales += " " + guestLocale[0];
-    				}
-        			liferay.trace("redirectToLogin: use for ui_locales: " + ui_locales);
-    			}
-    		}
+        
+            String ui_locales = getLocales(request);    
     		
-    		if (null == ui_locales) { // no GUEST_LANGUAGE_ID cookie available:
-        		ui_locales = request.getServletPath().substring(1); // may be /c (default locale, useless) or /en (requested locale, useful) or /xy (useful) ...
-    		}
-    		
-    		if (null == ui_locales || ui_locales.length() < 2) { // skip values being too short to meet https://tools.ietf.org/html/rfc5646
-    			// TODO: Improve locale recognition according to syntax given in RFC-5646
-    			ui_locales = request.getLocale().getLanguage();
-    		}
-    		liferay.trace("redirectToLogin: ui_locales: " + ui_locales);
-    		
-            OAuthClientRequest oAuthRequest = OAuthClientRequest
+        try{
+	    OAuthClientRequest oAuthRequest = OAuthClientRequest
                     .authorizationLocation(oidcConfiguration.authorizationLocation())
                     .setClientId(clientId)
                     .setRedirectURI(getRedirectUri(request))
@@ -230,7 +235,7 @@ public class LibFilter  {
                     .setState(generateStateParam(request))
                     .setParameter("ui_locales", ui_locales) // see http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
                     .buildQueryMessage();
-            liferay.debug("Redirecting to URL: " + oAuthRequest.getLocationUri());
+            liferay.debug("OIDC Redirecting URL: " + oAuthRequest.getLocationUri());
             response.sendRedirect(oAuthRequest.getLocationUri());
         } catch (OAuthSystemException e) {
             throw new IOException("While redirecting to OP for SSO login", e);

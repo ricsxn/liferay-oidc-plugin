@@ -1,0 +1,1 @@
+mvn clean install && JARS=./dxp-oidc-filter/target/dxp-oidc-filter-0.5.3-SNAPSHOT.jar && cp ./dxp-oidc-filter/target/dxp-oidc-filter-0.5.3-SNAPSHOT.jar /opt/liferay/home/deploy && chown tomcat8:tomcat8 /opt/liferay/home/deploy/*.jar && clear && tail -f $(ls -rt /opt/liferay/home/logs/*.log | tail -n 1)
