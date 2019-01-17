@@ -70,6 +70,4 @@ public class OpenIDConnectFilter extends BaseFilter {
         	processFilter(getClass().getName(), request, response, filterChain);
         }
     }
-
-
 }

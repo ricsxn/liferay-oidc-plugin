@@ -82,45 +82,52 @@ public class LibFilter  {
         HttpServletResponse response,
         FilterChain filterChain) throws Exception {
 
+        liferay.trace("[pfilter]");
+
         OIDCConfiguration oidcConfiguration = liferay.getOIDCConfiguration(liferay.getCompanyId(request));
 
         // If the plugin is not enabled, short circuit immediately
         if (!oidcConfiguration.isEnabled()) {
-            liferay.trace("OpenIDConnectFilter not enabled for this virtual instance. Will skip it.");
+            liferay.trace("[pfilter] OpenIDConnectFilter not enabled for this virtual instance. Will skip it.");
             return FilterResult.CONTINUE_CHAIN;
         }
-
-        liferay.trace("In processFilter()...");
 
         String pathInfo = request.getPathInfo();
 
         if (null != pathInfo) {
+            liferay.debug("[pfilter] pathInfo: " + pathInfo);
             if (pathInfo.contains("/portal/login")) {
+                liferay.debug("[pfilter] LOGIN");
                 if (!StringUtils.isBlank(request.getParameter(REQ_PARAM_CODE))
                     && !StringUtils.isBlank(request.getParameter(REQ_PARAM_STATE))) {
+                        liferay.debug("[pfilter] Parameters not null: " +
+                                      "PCODE=" + request.getParameter(REQ_PARAM_CODE) + " " +
+                                      "PSTATE=" + request.getParameter(REQ_PARAM_STATE));
                         if (!isUserLoggedIn(request)) {
+                            liferay.debug("[pfilter]  User is not logged in");
                             // LOGIN: Second time it will expect a code and state param to be set, and will exchange the code for an access token.
                             liferay.trace("About to exchange code for access token");
                             exchangeCodeForAccessToken(request);
                         } else {
-                            liferay.trace("subsequent run into filter during openid conversation, but already logged in." +
-                                         "Will not exchange code for token twice.");
+                            liferay.debug("[pfilter]  User is logged in, no need to exchange code for token twice");
                         }
                 } else {
+                    liferay.debug("[pfilter] Parameters REQ_PARAM_CODE REQ_PARAM_STATE are blank");
                     // LOGIN: The first time this filter gets hit, it will redirect to the OP.
-                    liferay.trace("About to redirect to OpenID Provider");
                     redirectToLogin(request, response, oidcConfiguration.clientId());
                     // no continuation of the filter chain; we expect the redirect to commence.
                     return FilterResult.BREAK_CHAIN;
                 }
             }
             else if (pathInfo.contains("/portal/logout")) {
+                liferay.debug("[pfilter] LOGOUT");
                 final String ssoLogoutUri = oidcConfiguration.ssoLogoutUri();
                 final String ssoLogoutParam = oidcConfiguration.ssoLogoutParam();
                 final String ssoLogoutValue = oidcConfiguration.ssoLogoutValue();
-                if (null != ssoLogoutUri && ssoLogoutUri.length
-                    () > 0 && isUserLoggedIn(request)) {
-                    liferay.trace("About to logout from SSO by redirect to " + ssoLogoutUri);
+                if (null != ssoLogoutUri &&
+                    ssoLogoutUri.length() > 0 &&
+                    isUserLoggedIn(request)) {
+                    liferay.trace("[pfilter] About to logout from SSO by redirect to " + ssoLogoutUri);
                     // LOGOUT: If Portal Logout URL is requested, redirect to OIDC Logout resource afterwards to globally logout.
                     // From there, the request should be redirected back to the Liferay portal home page.
                     request.getSession().invalidate();
@@ -128,10 +135,13 @@ public class LibFilter  {
                     // no continuation of the filter chain; we expect the redirect to commence.
                     return FilterResult.BREAK_CHAIN;
                 }
+            } else {
+                liferay.debug("[pfilter] PathInfo either does not contain '/portal/login' nor '/portal/logout'");
             }
         }
 
         // continue chain
+        liferay.debug("[pfilter] Filter continue chain");
         return FilterResult.CONTINUE_CHAIN;
 
     }
@@ -206,7 +216,6 @@ public class LibFilter  {
                 liferay.trace("redirectToLogin: use for ui_locales: " + ui_locales);
             }
         }
-
         if (null == ui_locales) { // no GUEST_LANGUAGE_ID cookie available:
             ui_locales = request.getServletPath().substring(1); // may be /c (default locale, useless) or /en (requested locale, useful) or /xy (useful) ...
         }
@@ -223,7 +232,7 @@ public class LibFilter  {
             IOException {
         OIDCConfiguration oidcConfiguration = liferay.getOIDCConfiguration(liferay.getCompanyId(request));
         
-            String ui_locales = getLocales(request);    
+        String ui_locales = getLocales(request);    
     		
         try{
 	    OAuthClientRequest oAuthRequest = OAuthClientRequest
