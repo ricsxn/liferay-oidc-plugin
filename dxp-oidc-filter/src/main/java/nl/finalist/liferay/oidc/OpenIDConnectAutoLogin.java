@@ -55,33 +55,18 @@ public class OpenIDConnectAutoLogin extends BaseAutoLogin {
         libAutologin = new LibAutoLogin(new Liferay70Adapter(_userLocalService, _configurationProvider));
     }
 
-    // Stored last visited URL, when not yet signed in
-    protected String redirect = "";
-
     @Override
     protected String[] doLogin(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String currentURL = _portal.getCurrentURL(request);
         LOG.debug("[doLogin] currentURL: " + currentURL);
-	String[] credentials = new String[3];
+	String[] credentials = { "", "", "" };
         credentials = libAutologin.doLogin(request, response);
-	for(int i=0; i<3; i++) {
-	    LOG.debug("[doLogin] credentials[" + i + "] = '" + credentials[i] + "'");
-	}
-	if(!currentURL.contains("login") && credentials[0].length() == 0) {
-		// Store last URL when not yet signed in
-		redirect = currentURL;
-	} else if(currentURL.contains("login") && credentials[0].length() != 0) {
-		// When login just accomplished, recall the stored URL
-                if (Validator.isNotNull(redirect)) {
-                        redirect = _portal.escapeRedirect(redirect);
-                }
-                else {
-                        redirect = _portal.getPathMain();
-                }
+	// Take care of redirection
+	if(currentURL.contains("login") && credentials[0].length() != 0) {
+		// User just SignedIn
+                String redirect = _portal.getPathMain();
                 request.setAttribute(AutoLogin.AUTO_LOGIN_REDIRECT, redirect);
                 LOG.debug("[doLogin] redirect: " + redirect);
-        } else {
-                LOG.debug("[doLogin] Signed or URL contains login, redirect: " + redirect);
         }
 	LOG.debug("[doLogin] Leaving credentials");
 	return credentials;
