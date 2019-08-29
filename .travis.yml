@@ -4,6 +4,6 @@ jdk:
 maven: 
   version: 3.3.9
 install: true
-script: mvn clean install
+script: mvn -v && mvn clean install
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t f365284a-5071-43dc-8ffa-099561418f77
