@@ -44,7 +44,7 @@ public class LibAutoLogin {
               jsonInfo += ", " + jsonItem;
             }
         }
-        return json;
+        return jsonInfo;
     }
 
     private String jsonUserInfo(Map<String, String> userInfo,
