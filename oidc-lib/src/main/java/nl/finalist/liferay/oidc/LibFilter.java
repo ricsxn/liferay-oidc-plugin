@@ -50,6 +50,7 @@ public class LibFilter  {
      * Session attribute name containing the UserInfo
      */
     public static final String OPENID_CONNECT_SESSION_ATTR = "OpenIDConnectUserInfo";
+    public static final String OPENID_CONNECT_ACCESS_TOKEN = "OpenIDConnectAccessToken";
 
   
     private final LiferayAdapter liferay;
@@ -95,6 +96,10 @@ public class LibFilter  {
         String pathInfo = request.getPathInfo();
 
         if (null != pathInfo) {
+            if (pathInfo.contains("iam_openidconnect")) {
+                liferay.trace("[pfilter] OpenIdConnectFilter IAM authentication detected.");
+                return FilterResult.CONTINUE_CHAIN;
+            }
             liferay.debug("[pfilter] pathInfo: " + pathInfo);
             if (pathInfo.contains("/portal/login")) {
                 liferay.debug("[pfilter] LOGIN");
@@ -191,6 +196,7 @@ public class LibFilter  {
 
             liferay.debug("Setting OpenIDUserInfo object in session: " + openIDUserInfo);
             request.getSession().setAttribute(OPENID_CONNECT_SESSION_ATTR, openIDUserInfo);
+            request.getSession().setAttribute(OPENID_CONNECT_ACCESS_TOKEN, accessToken);
 
         } catch (OAuthSystemException | OAuthProblemException e) {
             throw new IOException("While exchanging code for access token and retrieving user info", e);

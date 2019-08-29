@@ -12,6 +12,9 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.model.User;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -62,8 +65,19 @@ public class OpenIDConnectAutoLogin extends BaseAutoLogin {
 	String[] credentials = { "", "", "" };
         credentials = libAutologin.doLogin(request, response);
 	// Take care of redirection
-	if(currentURL.contains("login") && credentials[0].length() != 0) {
+	if(credentials != null && credentials[0].equals("@other_auth@")) {
+		User user = PortalUtil.getUser(request);
+		credentials[0] = "" + user.getUserId();
+		LOG.debug("[doLogin] External authentication, userId: " + credentials[0]);
+		String redirect = "/egissod/web/welcome";  //_portal.getPathMain();
+		request.setAttribute(AutoLogin.AUTO_LOGIN_REDIRECT, redirect);
+		LOG.debug("[doLogin] redirect: " + redirect);
+	}
+	else if(currentURL.contains("login") && credentials[0].length() != 0) {
 		// User just SignedIn
+		for(int i=0; i<credentials.length; i++) {
+	            LOG.debug("[doLogin] credentials[" + i + "] = '" + credentials[i] + "'");
+		}
                 String redirect = _portal.getPathMain();
                 request.setAttribute(AutoLogin.AUTO_LOGIN_REDIRECT, redirect);
                 LOG.debug("[doLogin] redirect: " + redirect);
