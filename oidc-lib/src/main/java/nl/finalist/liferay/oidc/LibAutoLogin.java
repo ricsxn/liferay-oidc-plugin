@@ -76,8 +76,6 @@ public class LibAutoLogin {
                 Map<String, String> userAccessToken =
                     (Map<String, String>) session.getAttribute(LibFilter.OPENID_CONNECT_ACCESS_TOKEN);
 
-		liferay.trace("Access token: 
-
                 UserInfoProvider provider = ProviderFactory.getOpenIdProvider(oidcConfiguration.providerType());
 
                 if (userInfo == null) {
@@ -95,6 +93,7 @@ public class LibAutoLogin {
 
                     String userId = liferay.createOrUpdateUser(companyId, emailAddress, givenName, familyName, oidcData);
                     liferay.trace("Returning credentials for userId " + userId + ", email: " + emailAddress);
+                    liferay.trace("oidc-data: " + oidcData);
 
                     userResponse = new String[]{userId, UUID.randomUUID().toString(), "false"};
                 }
