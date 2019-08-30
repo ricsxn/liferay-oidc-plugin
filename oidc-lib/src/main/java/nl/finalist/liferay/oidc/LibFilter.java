@@ -188,12 +188,13 @@ public class LibFilter  {
 
             liferay.debug("Response from UserInfo request: " + userInfoResponse.getBody());
             Map openIDUserInfo = new ObjectMapper().readValue(userInfoResponse.getBody(), HashMap.class);
-            Map<String, String> accessTokenMap = new HashMap<String, String>();
- 	    accessTokenMap.put("access_token", accessToken); 
+            Map<String, String> accessTokenInfo = new HashMap<String, String>();
+ 	    accessTokenInfo.put("access_token", accessToken); 
 
             liferay.debug("Setting OpenIDUserInfo object in session: " + openIDUserInfo);
             request.getSession().setAttribute(OPENID_CONNECT_SESSION_ATTR, openIDUserInfo);
-            request.getSession().setAttribute(OPENID_CONNECT_ACCESS_TOKEN, accessToken);
+	    liferay.debug("Setting OpendIDAccessToken object in session: " + accessTokenInfo);
+            request.getSession().setAttribute(OPENID_CONNECT_ACCESS_TOKEN, accessTokenInfo);
 
         } catch (OAuthSystemException | OAuthProblemException e) {
             throw new IOException("While exchanging code for access token and retrieving user info", e);
