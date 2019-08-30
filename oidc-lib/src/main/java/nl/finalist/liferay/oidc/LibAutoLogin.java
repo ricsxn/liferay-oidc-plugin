@@ -28,20 +28,29 @@ public class LibAutoLogin {
     }
 
     private String jsonProcMap(String jsonInfo, Map<String, String> info) {
-        for (Entry<String, String> entry : info.entrySet()) {
-	    String jsonItem = "";
-	    // Process only String values
-	    if(entry.getValue() instanceof String) {
-                jsonItem = "\"" + entry.getKey() + "\": " +
-                           "\"" + entry.getValue() + "\"";
-	    } else {
-                jsonItem = "\"" + entry.getKey() + "\": " +
-                           "\"<unsupported type>\"";
-            }
-            if(jsonInfo.equals("{")) {
-              jsonInfo += jsonItem;
+        String[] map_fields = {"sub", "access_token"};
+        for(Entry<String, String> entry : info.entrySet()) {
+            String entryKey = entry.getKey();
+            String entryVal = "";
+            if(entry.getValue() instanceof String) {
+                entryVal = entry.getValue();
             } else {
-              jsonInfo += ", " + jsonItem;
+                liferay.debug("Skipping no String value for key: '" + entryKey + "'");
+            }
+            for(int i=0; i<map_fields.length; i++) {
+                if(entryKey.equals(map_fields[i])) {
+	            String jsonItem = "";
+                    jsonItem = "\"" + entryKey + "\": " +
+                               "\"" + entryVal + "\"";
+                    if(jsonInfo.equals("{")) {
+                        jsonInfo += jsonItem;
+                    } else {
+                        jsonInfo += ", " + jsonItem;
+                    }
+                    break;
+                } else {
+                    continue;
+                }
             }
         }
         return jsonInfo;
