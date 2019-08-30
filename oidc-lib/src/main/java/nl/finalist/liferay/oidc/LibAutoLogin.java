@@ -27,6 +27,44 @@ public class LibAutoLogin {
         liferay.info("Initialized LibAutoLogin with Liferay API: " + liferay.getClass().getName());
     }
 
+    private String jsonProcMap(String jsonInfo, Map<String, String> info) {
+        String[] map_fields = {"sub", "access_token"};
+        for(Entry<String, String> entry : info.entrySet()) {
+            String entryKey = entry.getKey();
+            String entryVal = "";
+            if(entry.getValue() instanceof String) {
+                entryVal = entry.getValue();
+            } else {
+                liferay.debug("Skipping no String value for key: '" + entryKey + "'");
+            }
+            for(int i=0; i<map_fields.length; i++) {
+                if(entryKey.equals(map_fields[i])) {
+	            String jsonItem = "";
+                    jsonItem = "\"" + entryKey + "\": " +
+                               "\"" + entryVal + "\"";
+                    if(jsonInfo.equals("{")) {
+                        jsonInfo += jsonItem;
+                    } else {
+                        jsonInfo += ", " + jsonItem;
+                    }
+                    break;
+                } else {
+                    continue;
+                }
+            }
+        }
+        return jsonInfo;
+    }
+
+    private String jsonUserInfo(Map<String, String> userInfo,
+		                Map<String, String> userAccessToken) {
+        String jsonUserInfo = "{";
+        jsonUserInfo = jsonProcMap(jsonUserInfo, userInfo);
+        jsonUserInfo = jsonProcMap(jsonUserInfo, userAccessToken);
+	jsonUserInfo += "}";
+        return jsonUserInfo;
+   }
+
     private String jsonUserInfo(Map<String,String> userInfo) {
         String jsonUserInfo = "{";
         int i=0;
@@ -62,6 +100,8 @@ public class LibAutoLogin {
         	HttpSession session = request.getSession();
             Map<String, String> userInfo = (Map<String, String>) session.getAttribute(
                     LibFilter.OPENID_CONNECT_SESSION_ATTR);
+            Map<String, String> userAccessToken =
+                    (Map<String, String>) session.getAttribute(LibFilter.OPENID_CONNECT_ACCESS_TOKEN);
 
             UserInfoProvider provider = ProviderFactory.getOpenIdProvider(oidcConfiguration.providerType());
 
@@ -73,7 +113,7 @@ public class LibAutoLogin {
                          "Cannot correlate to Liferay user. UserInfo: " + userInfo);
              } else {
                  liferay.trace("Found OpenID Connect session attribute, userinfo: " + userInfo);
-                 String oidcData = jsonUserInfo(userInfo);
+                 String oidcData = jsonUserInfo(userInfo, userAccessToken);
             	 String emailAddress = provider.getEmail(userInfo);
                  String givenName = provider.getFirstName(userInfo);
                  String familyName = provider.getLastName(userInfo);
