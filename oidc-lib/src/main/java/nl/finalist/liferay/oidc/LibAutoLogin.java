@@ -97,36 +97,41 @@ public class LibAutoLogin {
         OIDCConfiguration oidcConfiguration = liferay.getOIDCConfiguration(companyId);
 
         if (oidcConfiguration.isEnabled()) {
-        	HttpSession session = request.getSession();
-            Map<String, String> userInfo = (Map<String, String>) session.getAttribute(
-                    LibFilter.OPENID_CONNECT_SESSION_ATTR);
-            Map<String, String> userAccessToken =
-                    (Map<String, String>) session.getAttribute(LibFilter.OPENID_CONNECT_ACCESS_TOKEN);
+            if(liferay.isUserLoggedIn(request)) {
+                // User is authenticated by another authentication source
+                liferay.trace("[doLogin] User already authenticated by another authentication source");
+                userResponse = new String[]{ "@other_auth@", null, null};
+            } else {
+                HttpSession session = request.getSession();
+                Map<String, String> userInfo = (Map<String, String>) session.getAttribute(
+                        LibFilter.OPENID_CONNECT_SESSION_ATTR);
+                Map<String, String> userAccessToken =
+                        (Map<String, String>) session.getAttribute(LibFilter.OPENID_CONNECT_ACCESS_TOKEN);
 
-            UserInfoProvider provider = ProviderFactory.getOpenIdProvider(oidcConfiguration.providerType());
+                UserInfoProvider provider = ProviderFactory.getOpenIdProvider(oidcConfiguration.providerType());
 
-             if (userInfo == null) {
-                 // Normal flow, apparently no current OpenID conversation
-                 liferay.trace("No current OpenID Connect conversation, no auto login");
-             } else if (StringUtils.isBlank(provider.getEmail(userInfo))) {
-                 liferay.error("Unexpected: OpenID Connect UserInfo does not contain email field. " +
-                         "Cannot correlate to Liferay user. UserInfo: " + userInfo);
-             } else {
-                 liferay.trace("Found OpenID Connect session attribute, userinfo: " + userInfo);
-                 String oidcData = jsonUserInfo(userInfo, userAccessToken);
-            	 String emailAddress = provider.getEmail(userInfo);
-                 String givenName = provider.getFirstName(userInfo);
-                 String familyName = provider.getLastName(userInfo);
+                 if (userInfo == null) {
+                     // Normal flow, apparently no current OpenID conversation
+                     liferay.trace("No current OpenID Connect conversation, no auto login");
+                 } else if (StringUtils.isBlank(provider.getEmail(userInfo))) {
+                     liferay.error("Unexpected: OpenID Connect UserInfo does not contain email field. " +
+                                   "Cannot correlate to Liferay user. UserInfo: " + userInfo);
+                 } else {
+                     liferay.trace("Found OpenID Connect session attribute, userinfo: " + userInfo);
+                     String oidcData = jsonUserInfo(userInfo, userAccessToken);
+                     String emailAddress = provider.getEmail(userInfo);
+                     String givenName = provider.getFirstName(userInfo);
+                     String familyName = provider.getLastName(userInfo);
 
-                 String userId = liferay.createOrUpdateUser(companyId, emailAddress, givenName, familyName, oidcData);
-                 liferay.trace("Returning credentials for userId " + userId + ", email: " + emailAddress);
+                     String userId = liferay.createOrUpdateUser(companyId, emailAddress, givenName, familyName, oidcData);
+                     liferay.trace("Returning credentials for userId " + userId + ", email: " + emailAddress);
                  
-                 userResponse = new String[]{userId, UUID.randomUUID().toString(), "false"};
-             }
-        } else {
+                     userResponse = new String[]{userId, UUID.randomUUID().toString(), "false"};
+                }
+            }
+	} else {
             liferay.trace("OpenIDConnectAutoLogin not enabled for this virtual instance. Will skip it.");
         }
-        
         return userResponse;
     }
 }

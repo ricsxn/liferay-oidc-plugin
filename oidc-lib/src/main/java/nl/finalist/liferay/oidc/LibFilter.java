@@ -135,7 +135,9 @@ public class LibFilter  {
                     // no continuation of the filter chain; we expect the redirect to commence.
                     return FilterResult.BREAK_CHAIN;
                 }
-            } else {
+            } else if (pathInfo.contains("/portal/iam_openidconnect")) {
+                liferay.debug("[pfilter] pathInfo refers to iam_access token");
+	    } else {
                 liferay.debug("[pfilter] PathInfo either does not contain '/portal/login' nor '/portal/logout'");
             }
         }
@@ -287,25 +289,24 @@ public class LibFilter  {
     		anchor = url.substring(posOfAnchor);
     		url = url.substring(0, posOfAnchor);
     	}
-    	
-		StringBuffer sb = new StringBuffer();
-		sb.append(url);
-		if (url.indexOf('?') < 0) {
-			sb.append('?');
-		} else 
-		if (!url.endsWith("?") && !url.endsWith("&")) {
-			sb.append('&');
-		}
-		sb.append(param);
-		sb.append('=');
-		try {
-			sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8.toString()));
-		} catch (UnsupportedEncodingException e) {
-			sb.append(value);
-		}
-		sb.append(anchor);
 
-    	return sb.toString() + anchor;
+	StringBuffer sb = new StringBuffer();
+        sb.append(url);
+        if (url.indexOf('?') < 0) {
+            sb.append('?');
+        } else if (!url.endsWith("?") && !url.endsWith("&")) {
+            sb.append('&');
+        }
+        sb.append(param);
+        sb.append('=');
+        try {
+            sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8.toString()));
+        } catch (UnsupportedEncodingException e) {
+            sb.append(value);
+        }
+        sb.append(anchor);
+
+        return sb.toString() + anchor;
     }
 
 }
