@@ -27,6 +27,35 @@ public class LibAutoLogin {
         liferay.info("Initialized LibAutoLogin with Liferay API: " + liferay.getClass().getName());
     }
 
+    private String jsonProcMap(String jsonInfo, Map<String, String> info) {
+        for (Entry<String, String> entry : info.entrySet()) {
+	    String jsonItem = "";
+	    // Process only String values
+	    if(entry.getValue() instanceof String) {
+                jsonItem = "\"" + entry.getKey() + "\": " +
+                           "\"" + entry.getValue() + "\"";
+	    } else {
+                jsonItem = "\"" + entry.getKey() + "\": " +
+                           "\"<unsupported type>\"";
+            }
+            if(jsonInfo.equals("{")) {
+              jsonInfo += jsonItem;
+            } else {
+              jsonInfo += ", " + jsonItem;
+            }
+        }
+        return jsonInfo;
+    }
+
+    private String jsonUserInfo(Map<String, String> userInfo,
+		                Map<String, String> userAccessToken) {
+        String jsonUserInfo = "{";
+        jsonUserInfo = jsonProcMap(jsonUserInfo, userInfo);
+        jsonUserInfo = jsonProcMap(jsonUserInfo, userAccessToken);
+	jsonUserInfo += "}";
+        return jsonUserInfo;
+   }
+
     private String jsonUserInfo(Map<String,String> userInfo) {
         String jsonUserInfo = "{";
         int i=0;
@@ -62,6 +91,8 @@ public class LibAutoLogin {
         	HttpSession session = request.getSession();
             Map<String, String> userInfo = (Map<String, String>) session.getAttribute(
                     LibFilter.OPENID_CONNECT_SESSION_ATTR);
+            Map<String, String> userAccessToken =
+                    (Map<String, String>) session.getAttribute(LibFilter.OPENID_CONNECT_ACCESS_TOKEN);
 
             UserInfoProvider provider = ProviderFactory.getOpenIdProvider(oidcConfiguration.providerType());
 
@@ -73,7 +104,7 @@ public class LibAutoLogin {
                          "Cannot correlate to Liferay user. UserInfo: " + userInfo);
              } else {
                  liferay.trace("Found OpenID Connect session attribute, userinfo: " + userInfo);
-                 String oidcData = jsonUserInfo(userInfo);
+                 String oidcData = jsonUserInfo(userInfo, userAccessToken);
             	 String emailAddress = provider.getEmail(userInfo);
                  String givenName = provider.getFirstName(userInfo);
                  String familyName = provider.getLastName(userInfo);

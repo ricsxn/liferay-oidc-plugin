@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+<!--
     <parent>
         <groupId>nl.iprofs.pom</groupId>
         <artifactId>parent</artifactId>
         <version>2.0.25</version>
     </parent>
+-->
     <groupId>nl.finalist.liferay.oidc</groupId>
     <artifactId>oidc-parent</artifactId>
     <version>0.5.3-SNAPSHOT</version>
@@ -122,6 +124,7 @@
             </plugin>
         </plugins>
     </build>
+<!--
     <distributionManagement>
         <repository>
             <id>releases-public</id>
@@ -136,6 +139,7 @@
             <url>https://nexus.iprofs.nl/content/repositories/releases-public</url>
         </repository>
     </repositories>
+-->
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
